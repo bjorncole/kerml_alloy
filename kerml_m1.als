@@ -51,11 +51,22 @@ fact null_is_single {
 // source ends and target ends as collections allows for n-ary associations (multiple source relationships to be 
 // interpreted as a set of objects that lead to another set)
 
+// links can be n-ary in UML according to 
+//http://etutorials.org/Programming/Learning+uml/Part+II+Structural+Modeling/
+//Chapter+3.+Class+and+Object+Diagrams/3.2+Associations+and+Links/
+
+// and link action descriptions
+
 sig Link {
 	sourceEnd : some Anything,
 	targetEnd : some Anything,
 	participant : some Anything
 }
+
+// when we have subclasses of this, we can subset sourceEnd and targetEnd and also
+// change the legal types to link
+
+// also can hold multiplicities on each end here
 
 // all ends are also participants
 
@@ -78,12 +89,18 @@ fact disjoint_end_sides {
 }
 
 // Special case for when sourceEnd is multiplicity 1? Forces targetEnd and feature leading from sourceEnd to match
+// Oddly enough, this looks / feels a lot like a junction table in database design ... only one-to-manys can live with a table
+
+// Also, hence the diamond ... duh.
 
 fact source_goes_to_features {
-	all l : Link, a1, a2 : Anything | (#(l.sourceEnd) = 1 and a1 in l.sourceEnd) => (a2 in l.targetEnd iff a2 in a1.feature)
+	all l : Link, a1, a2 : Anything | (#(l.sourceEnd) = 1 and a1 in l.sourceEnd) =>
+		(a2 in l.targetEnd iff a2 in a1.feature)
 }
 
 // Should there be a different interpretation for the multiplicities on participants versus ends?
+// Currently multiplicities on Association ends indicates the total count of allowable link ends to a given class of objects
+
 // The intentional interpretation paper talks about association ends as collections of items
 // separate from the links themselves (seems like that should match up with the participants)
 
