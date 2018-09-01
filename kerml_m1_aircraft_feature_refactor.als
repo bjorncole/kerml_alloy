@@ -4,8 +4,7 @@
 // An attempt at mapping semantic elements of KerML metamodel (things that can be resolved
 // to individuals) into relational logic to be solved and demonstrate how relevant things would work
 
-// This is a version where the Feature is NOT reified but instead defines a slot on the class
-// This is tricky, because what is below is the M1 USER MODEL and doesn't have syntactic sugar
+// This is a version where the Feature IS reified as a separate object
 
 // The example include demonstrates:
 
@@ -24,35 +23,28 @@ abstract sig AbstractAnything {}
 // Here we are M1 so now Feature is shown because it is not a reified thing
 // We can capture user properties by subsetting feature
 
-sig Anything extends AbstractAnything {
-	feature : some AbstractAnything
-}
+sig Anything extends AbstractAnything {}
 
 sig NullThing extends AbstractAnything {}
+
+abstract sig AbstractFeature {}
+
+// The definition below allows for a Feature to have multiple values
+
+sig Feature extends AbstractFeature {
+	featuringClass : one Anything,
+	type : some Anything
+}
+
+sig NullFeature extends AbstractFeature{}
 
 // can't have yourself as a feature
 
 fact no_self_reference {
-	all a : Anything | a not in a.feature
+	all f : Feature | f.featuringClass not in f.type
 }
 
-// can't have reflexive featuring or a cycle of features
-
-fact no_reflect_feature {
-	all a1, a2 : Anything | a1 in a2.feature => not a2 in a1.*feature
-}
-
-// hack for multiplicity of 0 when multiple things for Alloy
-
-fact null_replaces {
-	all a: Anything | #(a.feature :> NullThing) > 0 iff #(a.feature :> Anything) = 0
-}
-
-fact null_is_single {
-	all a: Anything | #(a.feature :> NullThing) <= 1
-}
-
-// end multiciplity of 0 hack
+// multiplicity of 0 handled by non-existance of Feature
 
 // ----------------------- END CLASS AND FEATURE -------------------------------------
 
@@ -66,7 +58,7 @@ fact null_is_single {
 //Chapter+3.+Class+and+Object+Diagrams/3.2+Associations+and+Links/
 
 // and link action descriptions
-
+/*
 sig Link {
 	domainEnd : some Anything,
 	rangeEnd : some Anything,
@@ -132,15 +124,89 @@ fact binary_is_one_a_side {
 	all b : BinaryLink | #(b.domainEnd) = 1 and #(b.rangeEnd) = 1
 }
 
+*/
+
 // --------------------------- AIRCRAFT EXAMPLE OBJECTS ------------------------
 
 // Definitions
 
 sig Aircraft extends Anything {
-	wing : some Wing,
-	engine : some Engine,
-	fuselage : one Fuselage,
-	empennage : one Empennage
+}
+
+sig WingFeature extends Feature {}
+sig EngineFeature extends Feature {}
+sig FuselageFeature extends Feature {}
+sig EmpennageFeature extends Feature {}
+
+sig VTailFeature extends Feature {}
+sig HTailFeature extends Feature {}
+
+// set featuringClass and feature types
+
+fact wing_featuring_set {
+	all wf : WingFeature | #(wf.featuringClass :> Aircraft) = 1
+}
+
+fact wing_type_set {
+	all wf : WingFeature | #(wf.type :> Wing) = #(wf.type)
+}
+
+fact engine_featuring_set {
+	all ef : EngineFeature | #(ef.featuringClass :> Aircraft) = 1
+}
+
+fact engine_type_set {
+	all ef : EngineFeature | #(ef.type :> Engine) = #(ef.type)
+}
+
+fact fuselage_featuring_set {
+	all ff : FuselageFeature | #(ff.featuringClass :> Aircraft) = 1
+}
+
+fact fuselage_type_set {
+	all ff : FuselageFeature | #(ff.type :> Fuselage) = #(ff.type)
+}
+
+fact empennage_featuring_set {
+	all ef : EmpennageFeature | #(ef.featuringClass :> Aircraft) = 1
+}
+
+fact empennage_type_set {
+	all ef : EmpennageFeature | #(ef.type :> Empennage) = #(ef.type)
+}
+
+fact vtail_featuring_set {
+	all vf : VTailFeature | #(vf.featuringClass :> Empennage) = 1
+}
+
+fact vtail_type_set {
+	all vf : VTailFeature | #(vf.type :> VTail) = #(vf.type)
+}
+
+fact htail_featuring_set {
+	all hf : HTailFeature | #(hf.featuringClass :> Empennage) = 1
+}
+
+fact htail_type_set {
+	all hf : HTailFeature | #(hf.type :> HTail) = #(hf.type)
+}
+
+// set feature type multiplicity
+
+fact wing_type_set {
+	all wf : WingFeature | #(wf.type) = 2
+}
+
+fact engine_type_set {
+	all ef : EngineFeature | #(ef.type) = 2
+}
+
+fact fuselage_type_set {
+	all ff : FuselageFeature | #(ff.type) = 1
+}
+
+fact engine_type_set {
+	all ef : EmpennageFeature | #(ef.type) = 1
 }
 
 sig Wing extends Anything {}
@@ -149,14 +215,13 @@ sig Engine extends Anything {}
 
 sig Fuselage extends Anything {}
 
-sig Empennage extends Anything {
-	vtail : some VTail,
-	htail : some HTail
-}
+sig Empennage extends Anything {}
 
 sig VTail extends Anything {}
 
 sig HTail extends Anything {}
+
+/*
 
 // Subsetting and other constraints
 
@@ -341,11 +406,11 @@ fact EmpennageToHTail_means_htail_feature {
 fact EmpennageToHTail_means_vtail_feature {
 	all e : Empennage | some atw : EmpennageToVTail | atw.vtail_end in e.vtail
 }
+*/
 
 // -------------------------------------- END EXAMPLE LINKS -------------------------------
 
 pred show () {}
 
-run show for 12 AbstractAnything, 7 Link, exactly 1 Aircraft, exactly 2 Wing, exactly 2 Engine, exactly 1 Fuselage,
-	exactly 1 Empennage, exactly 2 AircraftToWing, exactly 2 HTail, exactly 2 VTail,
-	exactly 2 EmpennageToHTail, exactly 2 EmpennageToVTail, exactly 1 AircraftToEmpennage
+run show for 10 AbstractAnything, 6 AbstractFeature,  exactly 1 Aircraft, exactly 1 WingFeature, exactly 1 EngineFeature,
+	exactly 1 FuselageFeature, exactly 1 EmpennageFeature, exactly 1 VTailFeature, exactly 1 HTailFeature
