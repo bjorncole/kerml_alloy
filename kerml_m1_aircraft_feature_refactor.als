@@ -58,7 +58,7 @@ fact no_self_reference {
 //Chapter+3.+Class+and+Object+Diagrams/3.2+Associations+and+Links/
 
 // and link action descriptions
-/*
+
 sig Link {
 	domainEnd : some Anything,
 	rangeEnd : some Anything,
@@ -98,8 +98,8 @@ fact disjoint_end_sides {
 // I tried iff in the second implication but it was too strong - broke binary links because feature couldn't simultaneously be in all rangeEnds
 
 fact source_goes_to_features {
-	all l : Link, a1, a2 : Anything | (#(l.domainEnd) = 1 and a1 in l.domainEnd) =>
-		(a2 in l.rangeEnd => a2 in a1.feature)
+	all l : Link, a1, a2 : Anything | (#(l.domainEnd) = 1 and a1 in l.domainEnd and a2 in l.rangeEnd) =>
+		one f : Feature | f.featuringClass = a1 and a2 in f.type
 }
 
 // Should there be a different interpretation for the multiplicities on participants versus ends?
@@ -123,8 +123,6 @@ sig BinaryLink extends Link {}
 fact binary_is_one_a_side {
 	all b : BinaryLink | #(b.domainEnd) = 1 and #(b.rangeEnd) = 1
 }
-
-*/
 
 // --------------------------- AIRCRAFT EXAMPLE OBJECTS ------------------------
 
@@ -209,6 +207,14 @@ fact engine_type_set {
 	all ef : EmpennageFeature | #(ef.type) = 1
 }
 
+fact vtail_type_set {
+	all vf : VTailFeature | #(vf.type) = 2
+}
+
+fact htail_type_set {
+	all hf : HTailFeature | #(hf.type) = 2
+}
+
 sig Wing extends Anything {}
 
 sig Engine extends Anything {}
@@ -284,6 +290,7 @@ fact close_vtail_feature {
 // -------------------------- AIRCRAFT EXAMPLE LINKS -----------------------------------
 
 // TODO - expand the example
+*/
 
 sig AircraftToWing extends BinaryLink {
 	wing_context_as_aircraft : one Aircraft,
@@ -356,7 +363,7 @@ fact AircraftToWing_has_no_extra_participants {
 }
 
 fact AircraftToEmpennage_has_no_extra_participants {
-	all atw : AircraftToWing | #(atw.participant) = 2
+	all atw : AircraftToEmpennage | #(atw.participant) = 2
 }
 
 fact EmpennageToHTail_has_no_extra_participants {
@@ -391,9 +398,41 @@ fact unique_EmpennageToVTail {
 
 // link Link to feature
 
-fact AircraftToWing_means_wing_feature {
-	all a : Aircraft | some atw : AircraftToWing | atw.wing_end in a.wing
+fact AircraftToWing_means_aircraft_featureClass {
+	all wf : WingFeature | some atw : AircraftToWing | atw.wing_end in wf.type
 }
+
+fact AircraftToWing_means_wing_type {
+	all wf : WingFeature | some atw : AircraftToWing | atw.wing_context_as_aircraft = wf.featuringClass
+}
+
+fact AircraftToEmpennage_means_aircraft_featureClass  {
+	all ef : EmpennageFeature | some atw : AircraftToEmpennage | atw.empennage_context_as_aircraft = ef.featuringClass
+}
+
+fact AircraftToEmpennage_means_empennage_type {
+	all ef : EmpennageFeature | some atw : AircraftToEmpennage | atw.empennage_end in ef.type
+}
+
+fact EmpennageToVTail_means_empennage_featureClass  {
+	all vf : VTailFeature | some atw : EmpennageToVTail  | atw.vtail_context_as_empennage = vf.featuringClass
+}
+
+fact EmpennageToVTail_means_vtail_type {
+	all vf : VTailFeature | some atw : EmpennageToVTail  | atw.vtail_end in vf.type
+}
+
+fact EmpennageToHTail_means_empennage_featureClass  {
+	all hf : HTailFeature | some atw : EmpennageToHTail  | atw.htail_context_as_empennage = hf.featuringClass
+}
+
+fact EmpennageToHTail_means_vtail_type {
+	all hf : HTailFeature | some atw : EmpennageToHTail  | atw.htail_end in hf.type
+}
+
+// do we need additional constraints to get multiplicity right?
+
+/*
 
 fact AircraftToEmpennage_means_empennage_feature {
 	all a : Aircraft | one atw : AircraftToEmpennage | atw.empennage_end = a.empennage
@@ -403,7 +442,7 @@ fact EmpennageToHTail_means_htail_feature {
 	all e : Empennage | some atw : EmpennageToHTail | atw.htail_end in e.htail
 }
 
-fact EmpennageToHTail_means_vtail_feature {
+fact EmpennageToVTail_means_vtail_feature {
 	all e : Empennage | some atw : EmpennageToVTail | atw.vtail_end in e.vtail
 }
 */
@@ -412,5 +451,6 @@ fact EmpennageToHTail_means_vtail_feature {
 
 pred show () {}
 
-run show for 10 AbstractAnything, 6 AbstractFeature,  exactly 1 Aircraft, exactly 1 WingFeature, exactly 1 EngineFeature,
-	exactly 1 FuselageFeature, exactly 1 EmpennageFeature, exactly 1 VTailFeature, exactly 1 HTailFeature
+run show for 12 AbstractAnything, 6 AbstractFeature, 8 Link, exactly 1 Aircraft, exactly 1 WingFeature, exactly 1 EngineFeature,
+	exactly 1 FuselageFeature, exactly 1 EmpennageFeature, exactly 1 VTailFeature, exactly 1 HTailFeature,
+	exactly 2 AircraftToWing, exactly 2 EmpennageToVTail, exactly 2 EmpennageToHTail
