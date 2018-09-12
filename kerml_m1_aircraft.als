@@ -137,13 +137,17 @@ fact binary_is_one_a_side {
 // Definitions
 
 sig Aircraft extends Anything {
-	wing : some Wing,
+	left_wing : one Wing,
+	right_wing : one Wing,
 	engine : some Engine,
 	fuselage : one Fuselage,
 	empennage : one Empennage
 }
 
-sig Wing extends Anything {}
+sig Wing extends Anything {
+	left_aileron : one Control_Surface,
+	right_aileron : one Control_Surface
+}
 
 sig Engine extends Anything {}
 
@@ -158,10 +162,12 @@ sig VTail extends Anything {}
 
 sig HTail extends Anything {}
 
+sig Control_Surface extends Anything {}
+
 // Subsetting and other constraints
 
 fact wing_sub_feature {
-	all w : Wing, ac : Aircraft | w in ac.wing iff w in ac.feature
+	all w : Wing, ac : Aircraft | (w = ac.left_wing or w = ac.right_wing) iff w in ac.feature
 }
 
 fact engine_sub_feature {
@@ -184,6 +190,20 @@ fact htail_sub_feature {
 	all e : Empennage, h : HTail | h in e.htail iff h in e.feature
 }
 
+fact aileron_sub_feature {
+	all w : Wing, ae : Control_Surface | (ae = w.left_aileron or ae = w.right_aileron) iff ae in w.feature
+}
+
+// unique features
+
+fact unique_wing {
+	all ac : Aircraft | ac.left_wing != ac.right_wing
+}
+
+fact unique_aileron {
+	all w : Wing | w.left_aileron != w.right_aileron
+}
+
 // allow only entries from the sets described in the defintion
 
 fact close_aircraft_feature {
@@ -191,7 +211,7 @@ fact close_aircraft_feature {
 }
 
 fact close_wing_feature {
-	all w : Wing | #(w.feature :> NullThing) = 1
+	all w : Wing | #(w.feature :> (Control_Surface)) = #w.feature
 }
 
 fact close_engine_feature {
@@ -212,6 +232,10 @@ fact close_htail_feature {
 
 fact close_vtail_feature {
 	all h: HTail | #(h.feature :> NullThing) = 1
+}
+
+fact close_aileron_feature {
+	all ae: Control_Surface | #(ae.feature :> NullThing) = 1
 }
 
 //--------------------------------------- END EXAMPLE OBJECTS -------------------------
@@ -250,6 +274,19 @@ sig EmpennageToVTail extends BinaryLink {
 	vtail_end : one VTail
 }
 
+sig WingToAileron extends BinaryLink {
+	aileron_context_as_wing : one Wing,
+	aileron_end : one Control_Surface
+}
+
+// we can make n-ary links stand in for nested features (outside ailerons vs inside ailerons)
+
+sig AcToLeftOuterAileron extends Link {
+	ac_end : one Aircraft,
+	wing_end : one Wing,
+	aileron_end : one Control_Surface
+}
+
 // subsetting ends
 
 fact map_domain_AircraftToWing {
@@ -284,6 +321,22 @@ fact map_range_EmpennageToVTail {
 	all atw : EmpennageToVTail | atw.vtail_end in atw.rangeEnd
 }
 
+fact map_domain_WingToAileron {
+	all atw : WingToAileron | atw.aileron_context_as_wing in atw.domainEnd
+}
+
+fact map_range_WingToAileron {
+	all atw : WingToAileron | atw.aileron_end in atw.rangeEnd
+}
+
+fact map_domain_AcToLeftOuterAileron {
+	all atw : AcToLeftOuterAileron | (atw.ac_end in atw.domainEnd) and (atw.wing_end in atw.domainEnd)
+}
+
+fact map_range_AcToLeftOuterAileron {
+	all atw : AcToLeftOuterAileron | atw.aileron_end in atw.rangeEnd
+}
+
 // no additional participants in definition
 
 fact AircraftToWing_has_no_extra_participants {
@@ -300,6 +353,14 @@ fact EmpennageToHTail_has_no_extra_participants {
 
 fact EmpennageToVTail_has_no_extra_participants {
 	all atw : EmpennageToVTail | #(atw.participant) = 2
+}
+
+fact WingToAileron_has_no_extra_participants {
+	all atw : WingToAileron | #(atw.participant) = 2
+}
+
+fact AcToLeftOuterAileron_has_no_extra_participants {
+	all atw : AcToLeftOuterAileron | #(atw.participant) = 3
 }
 
 // don't let links duplicate
@@ -324,10 +385,21 @@ fact unique_EmpennageToVTail {
 		atw1.vtail_end = atw2.vtail_end) => atw1 = atw2
 }
 
+fact unique_WingToAileron {
+	all atw1, atw2 : WingToAileron | (atw1.aileron_context_as_wing = atw2.aileron_context_as_wing and
+		atw1.aileron_end = atw2.aileron_end) => atw1 = atw2
+}
+
+fact unique_WingToAileron_rangeEnd {
+	all atw1, atw2 : WingToAileron | atw1.aileron_end = atw2.aileron_end => atw1 = atw2
+}
+
+// need to prevent links from exceeding the multiplicities of ends
+
 // link Link to feature
 
 fact AircraftToWing_means_wing_feature {
-	all a : Aircraft | some atw : AircraftToWing | atw.wing_end in a.wing
+	all a : Aircraft | some atw : AircraftToWing | atw.wing_end = a.left_wing or atw.wing_end = a.right_wing
 }
 
 fact AircraftToEmpennage_means_empennage_feature {
@@ -342,10 +414,22 @@ fact EmpennageToHTail_means_vtail_feature {
 	all e : Empennage | some atw : EmpennageToVTail | atw.vtail_end in e.vtail
 }
 
+fact WingToAileron_means_aileron_feature {
+	all w : Wing | some atw : WingToAileron | atw.aileron_end = w.left_aileron or atw.aileron_end = w.right_aileron
+}
+
+// create the nesting path for our nested link
+
+fact AcToLeftOuterAileron_setup {
+	all ac : Aircraft, a : Control_Surface, atw : AcToLeftOuterAileron | a = ac.left_wing.left_aileron =>
+		atw.ac_end = ac and atw.wing_end = ac.left_wing and atw.aileron_end = a
+}
+
 // -------------------------------------- END EXAMPLE LINKS -------------------------------
 
 pred show () {}
 
-run show for 12 AbstractAnything, 7 Link, exactly 1 Aircraft, exactly 2 Wing, exactly 2 Engine, exactly 1 Fuselage,
+run show for 16 AbstractAnything, 11 Link, exactly 1 Aircraft, exactly 2 Wing, exactly 2 Engine, exactly 1 Fuselage,
 	exactly 1 Empennage, exactly 2 AircraftToWing, exactly 2 HTail, exactly 2 VTail,
-	exactly 2 EmpennageToHTail, exactly 2 EmpennageToVTail, exactly 1 AircraftToEmpennage
+	exactly 2 EmpennageToHTail, exactly 2 EmpennageToVTail, exactly 1 AircraftToEmpennage, exactly 4 Control_Surface,
+	exactly 4 WingToAileron, exactly 1 AcToLeftOuterAileron

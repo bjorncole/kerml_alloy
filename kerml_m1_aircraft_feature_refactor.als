@@ -451,6 +451,6 @@ fact EmpennageToVTail_means_vtail_feature {
 
 pred show () {}
 
-run show for 12 AbstractAnything, 6 AbstractFeature, 8 Link, exactly 1 Aircraft, exactly 1 WingFeature, exactly 1 EngineFeature,
-	exactly 1 FuselageFeature, exactly 1 EmpennageFeature, exactly 1 VTailFeature, exactly 1 HTailFeature,
-	exactly 2 AircraftToWing, exactly 2 EmpennageToVTail, exactly 2 EmpennageToHTail
+run show for 10 AbstractAnything, 5 AbstractFeature, 7 Link, exactly 1 Aircraft, exactly 1 WingFeature, exactly 1 EngineFeature,
+	exactly 1 EmpennageFeature, exactly 1 VTailFeature, exactly 1 HTailFeature,
+	exactly 2 AircraftToWing, exactly 2 EmpennageToVTail, exactly 2 EmpennageToHTail, exactly 1 AircraftToEmpennage
